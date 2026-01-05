@@ -1,0 +1,98 @@
+# --------------------------------------------------------------------------
+# GLOBAL CONFIGURATION
+# --------------------------------------------------------------------------
+exporter_port: $EXPORTER_PORT|9090
+polling_interval_seconds: $POLLING_INTERVAL_SECONDS|28800 # Updates every 8h
+
+# --------------------------------------------------------------------------
+# METRICS DEFINITION
+# --------------------------------------------------------------------------
+metrics:
+  # -----------------------------------------------------------------------
+  # Metric 1: The "Rich Data" View (Service + Usage Type)
+  # -----------------------------------------------------------------------
+  - metric_name: aws_daily_cost_breakdown
+    metric_description: 'Detailed daily cost by Service and Usage Type'
+    metric_type: AmortizedCost
+    group_by:
+      enabled: true
+      groups:
+        - type: DIMENSION
+          key: SERVICE
+          label_name: service
+        - type: DIMENSION
+          key: USAGE_TYPE
+          label_name: UsageType
+      merge_minor_cost:
+        enabled: false
+        threshold: 1   # Merge tiny costs (<$1) into "Other" to save memory
+        tag_value: other
+
+  # -----------------------------------------------------------------------
+  # Metric 2: The Regional View
+  # -----------------------------------------------------------------------
+  - metric_name: aws_daily_cost_regional
+    metric_description: 'Daily cost by AWS Region by service'
+    metric_type: AmortizedCost
+    group_by:
+      enabled: true
+      groups:
+        - type: DIMENSION
+          key: SERVICE
+          label_name: service
+        - type: DIMENSION
+          key: REGION
+          label_name: region
+      merge_minor_cost:
+        enabled: false
+
+  # -----------------------------------------------------------------------
+  # Metric 3: The Monthly View by Service
+  # -----------------------------------------------------------------------
+  - metric_name: aws_monthly_cost_total
+    metric_description: 'Monthly cost by AWS Region by service'
+    granularity: MONTHLY
+    metric_type: AmortizedCost
+    group_by:
+      enabled: true
+      groups:
+        - type: DIMENSION
+          key: SERVICE
+          label_name: service
+        - type: DIMENSION
+          key: USAGE_TYPE
+          label_name: UsageType
+      merge_minor_cost:
+        enabled: false
+        threshold: 5
+        tag_value: other
+
+
+  # -----------------------------------------------------------------------
+  # Metric 4: The Monthly View by Service by Region
+  # -----------------------------------------------------------------------
+  - metric_name: aws_monthly_cost_total_regional
+    metric_description: 'Monthly cost by AWS Region and service'
+    granularity: MONTHLY
+    metric_type: AmortizedCost
+    group_by:
+      enabled: true
+      groups:
+        - type: DIMENSION
+          key: SERVICE
+          label_name: service
+        - type: DIMENSION
+          key: REGION
+          label_name: region
+      merge_minor_cost:
+        enabled: true
+        threshold: 5
+        tag_value: other
+
+# --------------------------------------------------------------------------
+# TARGET ACCOUNTS (CRITICAL)
+# --------------------------------------------------------------------------
+target_aws_accounts:
+  # REPLACE THIS WITH YOUR REAL ACCOUNT ID
+  # The 'Publisher' ID must match the account the credentials belong to.
+  - Publisher: $AWS_ACCOUNT_ID|""

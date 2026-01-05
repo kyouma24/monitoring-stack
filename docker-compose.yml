@@ -1,0 +1,258 @@
+version: '3.8'
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: false
+
+volumes:
+  prometheus:
+  grafana:
+  alertmanager:
+
+configs:
+  prometheus_config:
+    file: ./prometheus/prometheus.yml
+  yace_config:
+    file: ./yace/config.yml
+  grafana_ini:
+    file: ./grafana/grafana.ini
+  alertmanager_config:
+    file: ./alertmanager/alertmanager.yml
+  aws-cost-exporter:
+    file: ./aws-cost-exporter/config.yml
+
+secrets:
+  thanos_objstore:
+    file: ./secrets/bucket_config.yml
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-security: &default-security
+  security_opt: [no-new-privileges:true]
+  cap_drop:
+    - ALL
+  read_only: true
+
+services:
+  grafana:
+    image: hoouinkyouma/grafana:customv2
+    container_name: grafana
+    user: "472:472"
+    ports:
+      - "127.0.0.1:3000:3000"
+    configs:
+      - source: grafana_ini
+        target: /etc/grafana/grafana.ini
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - frontend
+      - backend
+    <<: *default-security
+    read_only: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  renderer:
+    image: grafana/grafana-image-renderer:3.9.0
+    container_name: renderer
+    networks:
+      - backend
+    <<: *default-security
+    read_only: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  reporter:
+    image: asciidoctor/docker-asciidoctor
+    container_name: reporter
+    networks:
+      - backend
+    volumes:
+      - ./reporter:/documents:ro
+    command: sh /documents/startup.sh
+    <<: *default-security
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=24h'
+      - '--storage.tsdb.max-block-duration=2h'
+      - '--storage.tsdb.min-block-duration=2h'
+      # - '--web.external-url=https://neocompass.cloud/prometheus/'
+    volumes:
+      - prometheus:/prometheus
+      - prometheus/rules/:/etc/prometheus/
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    networks:
+      - frontend
+      - backend
+    <<: *default-security
+    read_only: false
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    volumes:
+      - alertmanager_data:/alertmanager
+    configs:
+      - source: alertmanager_config
+        target: /etc/alertmanager/alertmanager.yml
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - frontend
+      - backend
+    <<: *default-security
+    read_only: false
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  sidecar:
+    image: quay.io/thanos/thanos:v0.34.1
+    container_name: sidecar
+    command:
+      - sidecar
+      - --grpc-address=0.0.0.0:10901
+      - --prometheus.url=http://prometheus:9090
+      - --objstore.config-file=/run/secrets/thanos_objstore
+    volumes:
+      - prometheus:/prometheus
+    secrets:
+      - thanos_objstore
+    networks:
+      - backend
+    <<: *default-security
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  store_gateway:
+    image: quay.io/thanos/thanos:v0.34.1
+    container_name: store_gateway
+    command:
+      - store
+      - --grpc-address=0.0.0.0:10901
+      - --http-address=0.0.0.0:10902
+      - --objstore.config-file=/run/secrets/thanos_objstore
+    secrets:
+      - thanos_objstore
+    networks:
+      - backend
+    <<: *default-security
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  query:
+    image: quay.io/thanos/thanos:v0.34.1
+    container_name: query
+    command:
+      - query
+      - --http-address=0.0.0.0:10902
+      - --store=sidecar:10901
+      - --store=store_gateway:10901
+    networks:
+      - backend
+    <<: *default-security
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  yace:
+    image: prometheuscommunity/yet-another-cloudwatch-exporter:v0.63.0
+    container_name: yace
+    configs:
+      - source: yace_config
+        target: /tmp/config.yml
+    command:
+      - -listen-address=:8099
+      - -config.file=/tmp/config.yml
+    networks:
+      - backend
+    <<: *default-security
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8099/metrics"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+
+  aws-cost-exporter:
+    image: opensourceelectrolux/aws-cost-exporter:v1.1.1
+    container_name: aws-cost-exporter
+    secrets:
+      - aws_credentials
+    environment:
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
+      AWS_REGION: ap-south-1
+    configs:
+      - source: aws-cost-exporter
+        target: /app/exporter_config.yml
+    command: [ "python", "main.py", "-c", "/exporter_config.yml" ]
+    networks:
+      - backend
+    <<: *default-security
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/metrics"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging

@@ -1,0 +1,64 @@
+extends: default
+
+# Define the base font family
+font:
+  catalog:
+    Calibri:
+      normal: Calibri-Regular.ttf
+      bold: Calibri-Bold.ttf
+      italic: Calibri-Italic.ttf
+      bold_italic: Calibri-BoldItalic.ttf
+
+# Use the Calibri font family as the base font
+base:
+  font-family: Calibri
+  font-size: 10
+
+# Page settings
+page:
+  size: A4
+  layout: portrait
+  margin: [36, 24, 36, 24]
+  background-image: image:./images/logo-minfy.png
+  background-image-scale: 0.5
+
+# Header settings
+header:
+  height: 36
+  font-color: 000000
+  recto:
+    left:
+      content: '{document-title}'
+      font-size: 12
+      font-color: 555555
+    center:
+      content: 'MinfySentrySystem Report'
+      font-size: 12
+      font-color: 555555
+    right:
+      content: '{page-number}'
+      font-size: 12
+      font-color: 555555
+
+# Footer settings
+footer:
+  height: 36
+  font-color: 000000
+  verso:  # Changed from recto to verso
+    left:
+      content: 'Minfy Technologies'
+      font-size: 10
+      font-color: 555555
+    right:
+      image: ./images/logo-minfy.png
+      fit: [100, 36]  # Adjust the size to fit your needs
+      valign: middle
+
+# Title settings
+title:
+  font-family: Calibri
+  font-size: 22
+  font-color: 000080  # Navy Blue
+  background-color: FFFF00  # Yellow
+  line-height: 1.5
+  text-align: center

@@ -1,0 +1,151 @@
+apiVersion: v1alpha1
+sts-region: ap-south-1
+discovery:
+  jobs:
+    - type: AWS/RDS
+      regions:
+        - ap-south-1
+      period: 300
+      length: 86400
+      dimensionNameRequirements: [DBInstanceIdentifier]
+      metrics:
+        - name: CPUUtilization
+          statistics: [Average, Minimum, Maximum]
+        - name: DatabaseConnections
+          statistics: [Sum, Average, Minimum, Maximum]
+        - name: FreeableMemory
+          statistics: [Average, Minimum, Maximum]
+        - name: FreeStorageSpace
+          statistics: [Average, Minimum, Maximum]
+        - name: ReadThroughput
+          statistics: [Average, Maximum, Sum, Minimum]
+        - name: WriteThroughput
+          statistics: [Average, Maximum, Sum, Minimum]
+        - name: ReadIOPS
+          statistics: [Average, Maximum, Sum, Minimum]
+        - name: WriteIOPS
+          statistics: [Average, Maximum, Sum, Minimum]
+        - name: DBLoad
+          statistics: [Average, Maximum]
+        - name: DBLoadCPU
+          statistics: [Average, Maximum]
+        - name: CheckpointLag
+          statistics: [Average, Maximum, Minimum]
+
+    - type: AWS/ApplicationELB
+      regions:
+        - ap-south-1
+      nilToZero: true
+      period: 60
+      length: 300
+      metrics:
+        - name: HealthyHostCount
+          statistics: [Average]
+        - name: UnHealthyHostCount
+          statistics: [Average]
+        - name: RequestCount
+          statistics: [Sum]
+        - name: TargetResponseTime
+          statistics: [Average]
+        - name: HTTPCode_ELB_4XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_ELB_5XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_Target_5XX_Count
+          statistics: [Sum]
+        - name: RejectedConnectionCount
+          statistics: [Sum]
+        - name: SpilloverCount
+          statistics: [Sum]
+
+    - type: AWS/S3
+      regions:
+        - ap-south-1
+      nilToZero: true
+      addCloudwatchTimestamp: false
+      period: 86400
+      length: 172800
+      metrics:
+        - name: BucketSizeBytes
+          statistics: [Average]
+          period: 86400
+        - name: NumberOfObjects
+          statistics: [Average]
+          period: 86400
+
+    - type: AWS/Lambda
+      regions:
+        - ap-south-1
+      period: 300
+      length: 86400
+      customTags:
+        - key: FunctionName
+          value: HelloWorldFunction
+      metrics:
+        - name: Invocations
+          statistics: [Sum]
+        - name: Errors
+          statistics: [Sum]
+        - name: Throttles
+          statistics: [Sum]
+        - name: Duration
+          statistics: [Average, Maximum, Minimum, p90]
+        - name: ConcurrentExecutions
+          statistics: [Maximum, Average]
+        - name: RecursiveInvocationsDropped
+          statistics: [Sum]
+        - name: AsyncEventsReceived
+          statistics: [Sum]
+        - name: AsyncEventsDropped
+          statistics: [Sum]
+
+    - type: AWS/Backup
+      regions:
+        - ap-south-1
+      period: 300
+      length: 604800
+      dimensionNameRequirements: [BackupVaultName]
+      metrics:
+        - name: NumberOfBackupJobsCompleted
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsCreated
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsPending
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsRunning
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsAborted
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsCompleted
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsFailed
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfBackupJobsExpired
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfRecoveryPointsCreated
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: NumberOfRecoveryPointsDeleting
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: BackupJobState
+          statistics: [Average, Minimum, Maximum]
+        - name: BackupJobDuration
+          statistics: [Average, Minimum, Maximum, Sum]
+
+
+    - type: AWS/Billing
+      regions:
+        - us-east-1
+      period: 300
+      length: 86400
+      customTags:
+        - key: Account
+          value: Central
+      dimensions:
+      - name: Currency
+        value: USD
+      metrics:
+        - name: EstimatedCharges
+          statistics:
+          - Maximum
+          period: 360
+          length: 86400

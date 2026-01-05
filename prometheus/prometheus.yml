@@ -1,0 +1,108 @@
+# --- GLOBAL CONFIG ---
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+  scrape_timeout: 30s
+  external_labels:
+    client: Testing
+
+# --- REMOTE WRITE ---
+remote_write:
+  - url: "http://10.192.10.127:10908/api/v1/receive"
+
+# --- RULE CONFIGS ---
+rule_files:
+  - "/etc/prometheus/rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+# --- INFRASTRUCTURE (EC2 SD) ---
+  - job_name: "linux"
+    ec2_sd_configs:
+      - region: "ap-south-1"
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_OS]
+        regex: linux
+        action: keep
+      - source_labels: [__meta_ec2_private_ip]
+        regex: (.*)
+        replacement: ${1}:9100
+        target_label: __address__
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: private_ip
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance_name
+
+  - job_name: "windows"
+    ec2_sd_configs:
+      - region: "ap-south-1"
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_OS]
+        regex: windows
+        action: keep
+      - source_labels: [__meta_ec2_private_ip]
+        regex: (.*)
+        replacement: ${1}:9182
+        target_label: __address__
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: private_ip
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance_name
+
+  - job_name: "process-exporter"
+    ec2_sd_configs:
+      - region: "ap-south-1"
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_process_monitor]
+        regex: yes
+        action: keep
+      - source_labels: [__meta_ec2_private_ip]
+        regex: (.*)
+        replacement: ${1}:9256
+        target_label: __address__
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: private_ip
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance_name
+    metric_relabel_configs:
+      - source_labels: [groupname]
+        regex: '^\[.*\]$|^\(.*\)$|^(sh|sleep|tail|at|cron|vi)$'
+        action: drop
+
+# --- API ---
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://www.youtube.com/
+          - https://aws.amazon.com/
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+# --- INTERNAL SERVICES ---
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  - job_name: 'aws-exporters' 
+    static_configs:
+      - targets: ['yace:8099', 'aws-cost-exporter:9090']
+
+  - job_name: 'monitoring-stack'
+    static_configs:
+      - targets: 
+          - 'grafana:3000'
+          - 'query:10902'
+          - 'renderer:8081'
+          - 'blackbox:9115'

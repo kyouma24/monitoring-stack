@@ -1,0 +1,211 @@
+groups:
+## Disk Usage
+  - name: disk_usage_alerts
+    rules:
+      - alert: DiskUsageTrouble
+        expr: sum without (device) ((node_filesystem_size_bytes{fstype=~"ext.*|xfs.*"} - node_filesystem_free_bytes{fstype=~"ext.*|xfs.*"}) / node_filesystem_size_bytes{fstype=~"ext.*|xfs.*"} * 100) >= 80
+        for: 5m
+        labels:
+          severity: trouble
+          category: disk_usage
+        annotations:
+          summary: "High disk usage on {{ $labels.instance_name }}(mountpoint: {{ $labels.mountpoint }}) since 5m"
+          description: "Trouble: Disk usage is over 80% on {{ $labels.instance_name }}(mountpoint: {{ $labels.mountpoint }}) since 5 minutes. Attention needed to avoid storage issues."
+          VALUE: '{{ $value }}'
+          LABELS: '{{ $labels }}'
+
+      - alert: DiskUsageCritical
+        expr: sum without (device) ((node_filesystem_size_bytes{fstype=~"ext.*|xfs.*"} - node_filesystem_free_bytes{fstype=~"ext.*|xfs.*"}) / node_filesystem_size_bytes{fstype=~"ext.*|xfs.*"} * 100) >= 90
+        for: 5m
+        labels:
+          severity: critical
+          category: disk_usage
+        annotations:
+          summary: "High disk usage on {{ $labels.instance_name }}(mountpoint: {{ $labels.mountpoint }}) since 5m"
+          description: "Critical: Disk usage is over 90% on {{ $labels.instance_name }} (mountpoint: {{ $labels.mountpoint }}) since 5 minutes. Immediate attention is needed to avoid storage issues."
+          VALUE: '{{ $value }}'
+          LABELS: '{{ $labels }}'
+
+
+## Server Status
+  - name: server_alerts
+    rules:
+      - alert: ServerDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Server {{ $labels.instance_name }} is down"
+          description: "Critical: Server {{ $labels.instance_name }} is down. The possible reason for this incident is the server is not responding for the past 5 minutes."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+
+## Memory Usage
+  - name: memory_alerts
+    rules:
+      - alert: MemoryUsageCritical
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) >= 50
+        for: 5m
+        labels:
+          severity: critical
+          category: mem_usage
+        annotations:
+          summary: "Critical: Extremely high memory usage on {{ $labels.instance_name }}" 
+          description: "Critical: Memory usage on {{ $labels.instance_name }} has exceeded 50%, leaving less than 50% available. Immediate action is required to prevent system instability."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: MemoryUsageTrouble
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) >= 25
+        for: 5m
+        labels:
+          severity: trouble
+          category: mem_usage
+        annotations:
+          summary: "Trouble: High memory usage on {{ $labels.instance_name }}"
+          description: "Trouble: Memory usage on {{ $labels.instance_name }} has exceeded 25%. Attention needed."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+
+## Swap Memory Alerts
+  - name: swapmemory_alerts
+    rules:
+      - alert: SwapUsageCritical
+        expr: (node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes > 90
+        for: 5m
+        labels:
+          severity: critical
+          category: swapmem_usage
+        annotations:
+          summary: "Critical swap memory usage on {{ $labels.instance_name }}"
+          description: "Critical: Swap memory usage on {{ $labels.instance_name }} has exceeded 90%. High swap usage can lead to performance degradation. Immediate action is required."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: SwapUsageTrouble
+        expr: (node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes > 80
+        for: 5m
+        labels:
+          severity: trouble
+          category: swapmem_usage
+        annotations:
+          summary: "Trouble: High swap memory usage on {{ $labels.instance_name }}"
+          description: "Trouble: Swap memory usage on {{ $labels.instance_name }} has exceeded 80%. High swap usage can lead to performance degradation. Attention required."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+
+## CPU Alerts
+  - name: cpu_alerts
+    rules:
+      - alert: CpuLoadCritical
+        expr: 100 - (avg without(cpu, mode) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 50
+        for: 5m
+        labels:
+          severity: critical
+          category: cpu_usage
+        annotations:
+          summary: "Critical CPU load on {{ $labels.instance_name }}"
+          description: "Critical: CPU load on {{ $labels.instance_name }} has exceeded 50%. High CPU usage may lead to performance issues. Immediate action is required."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: CpuLoadTrouble
+        expr: 100 - (avg without(cpu, mode) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 25
+        for: 5m
+        labels:
+          severity: trouble
+          category: cpu_usage
+        annotations:
+          summary: "Trouble: High CPU load on {{ $labels.instance_name }}"
+          description: "Trouble: CPU load on {{ $labels.instance_name }} has exceeded 25%. High CPU usage may lead to performance issues. Attention required."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+
+################################## Windows Alerts ##############################################################
+## DiskUsage Alert
+  - name: windows_drive_disk_usage
+    rules:
+      - alert: DiskUsageTrouble
+        expr: ((windows_logical_disk_size_bytes{volume!~"HarddiskVolume.+"} - windows_logical_disk_free_bytes{volume!~"HarddiskVolume.+"}) / windows_logical_disk_size_bytes{volume!~"HarddiskVolume.+"} * 100) >= 80
+        for: 5m
+        labels:
+          severity: trouble
+          category: drive_usage
+        annotations:
+          summary: "High disk usage on {{ $labels.instance_name }}, volume: {{ $labels.volume }}"
+          description: "Trouble: Disk usage is over 80% on {{ $labels.instance_name }}, volume: {{ $labels.volume }} since 5 minutes. Attention needed to avoid storage issues."
+          VALUE: '{{ $value }}'
+          LABELS: '{{ $labels }}'
+
+      - alert: DiskUsageCritical
+        expr: ((windows_logical_disk_size_bytes{volume!~"HarddiskVolume.+"} - windows_logical_disk_free_bytes{volume!~"HarddiskVolume.+"}) / windows_logical_disk_size_bytes{volume!~"HarddiskVolume.+"} * 100) >= 90
+        for: 5m
+        labels:
+          severity: critical
+          category: drive_usage
+        annotations:
+          summary: "High disk usage on {{ $labels.instance_name }}, volume: {{ $labels.volume }}"
+          description: "Critical: Disk usage is over 90% on {{ $labels.instance_name }}, volume: {{ $labels.volume }} since 5 minutes. Immediate attention needed to avoid storage issues."
+          VALUE: '{{ $value }}'
+          LABELS: '{{ $labels }}'
+          
+
+## MemoryUsage
+  - name:  windows_memory_usage
+    rules:
+      - alert: MemoryUsageTrouble
+        expr: (100 - 100 * windows_os_physical_memory_free_bytes / windows_cs_physical_memory_bytes) >= 80
+        for: 5m
+        labels:
+          severity: trouble
+          category: mem_usage
+        annotations:
+          summary: "Trouble: High memory usage on {{ $labels.instance_name }}"
+          description: "Trouble: Memory usage on {{ $labels.instance_name }} has exceeded 80%, leaving less than 20% available. Attention needed."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: MemoryUsageCritical
+        expr: (100 - 100 * windows_os_physical_memory_free_bytes / windows_cs_physical_memory_bytes) >= 90
+        for: 5m
+        labels:
+          severity: critical
+          category: mem_usage
+        annotations:
+          summary: "Critical: Extremely high memory usage on {{ $labels.instance_name }}"
+          description: "Critical: Memory usage on {{ $labels.instance_name }} has exceeded 90%, leaving less than 10% available. Immediate action is required to prevent system instability."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+
+## CPUUsage
+  - name: windows_cpu_usage
+    rules:
+      - alert: CpuLoadTrouble
+        expr: 100 - (avg without (core, mode) (rate(windows_cpu_time_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: trouble
+          category: cpu_usage
+        annotations:
+          summary: "Trouble: High CPU load on {{ $labels.instance_name }}"
+          description: "Trouble: CPU load on {{ $labels.instance_name }} has exceeded 80%. High CPU usage may lead to performance issues. Attention required."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: CpuLoadCritical
+        expr: 100 - (avg without (core, mode) (rate(windows_cpu_time_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: trouble
+          category: cpu_usage
+        annotations:
+          summary: "Critical CPU load on {{ $labels.instance_name }}"
+          description: "Critical: CPU load on {{ $labels.instance_name }} has exceeded 90%. High CPU usage may lead to performance issues. Immediate action is required."
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"

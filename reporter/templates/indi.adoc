@@ -1,0 +1,13 @@
+:pdf-theme: /home/ubuntu/grafana-pro/reportgen/themes/custom-theme.yml
+:imagesdir: ./images
+
+[.text-center]
+image::logo.png[300,200,float="right",align="center"]
+
+[.text-center]
+= NeoGuard
+:grafana_default_dashboard: linux-dashboard
+
+grafana_panel_image:13[scale=75, render-height="500", render-width="650", render-timeout="180"]
+grafana_panel_image:12[scale=75, render-height="500", render-width="650", render-timeout="180"]
+grafana_panel_image:11[scale=75, render-height="500", render-width="650", render-timeout="180"]
