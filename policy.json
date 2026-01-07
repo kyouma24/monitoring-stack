@@ -7,12 +7,11 @@
             "Action": [
                 "s3:ListBucket",
                 "s3:GetObject",
-                "s3:DeleteObject",
                 "s3:PutObject"
             ],
             "Resource": [
-                "arn:aws:s3:::your-thanos-bucket-name",
-                "arn:aws:s3:::your-thanos-bucket-name/*"
+                "arn:aws:s3:::my-thanos-bucket-testing",
+                "arn:aws:s3:::my-thanos-bucket-testing/*"
             ]
         },
         {

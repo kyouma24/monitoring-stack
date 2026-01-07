@@ -1,6 +1,9 @@
-#!/bin/bash
-
+#!/bin/sh
 cd /documents
-apt-get install ruby -y
+
 gem install ruby-grafana-reporter
-ruby-grafana-reporter
+
+mkdir -p templates/images
+mkdir -p reports
+
+ruby-grafana-reporter -c grafana_reporter.config

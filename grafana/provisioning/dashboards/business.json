@@ -1,0 +1,45 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 24, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "code": {
+          "language": "html",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<style>.portal-wrapper{font-family:'Inter',system-ui,sans-serif;text-align:center;margin-top:40px}.card-grid{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:25px;margin-top:50px;padding-bottom:50px}.nav-card{background:linear-gradient(145deg,#181b1f,#22252b);width:220px;height:240px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;transition:all .3s cubic-bezier(.25,.8,.25,1);box-shadow:0 4px 6px rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden}.nav-card:hover{transform:translateY(-8px);box-shadow:0 15px 30px rgba(0,0,0,.5);border-color:#3274D9}.nav-card::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at center,rgba(50,116,217,.15) 0,transparent 70%);opacity:0;transition:opacity .3s ease;z-index:1}.nav-card:hover::before{opacity:1}.card-icon{width:64px;height:64px;margin-bottom:20px;transition:transform .3s ease;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));z-index:2}.nav-card:hover .card-icon{transform:scale(1.1)}.card-title{color:#e0e0e0;font-size:18px;font-weight:600;margin-bottom:6px;z-index:2}.card-desc{color:#8e8e8e;font-size:13px;z-index:2}</style><div class=\"portal-wrapper\"><img src=\"/public/img/grafana_icon.svg\" style=\"height:100px;margin-bottom:15px\"/><h1 style=\"font-size:32px;font-weight:500;margin:0;color:#fff\">NeoNXT</h1><p style=\"font-size:16px;color:#8e8e8e;margin-top:5px\">Select a service to view metrics</p><div class=\"card-grid\"><a href=\"/d/linux\" class=\"nav-card\"><img src=\"/public/img/os-linux.svg\" class=\"card-icon\"/><div class=\"card-title\">Linux</div><div class=\"card-desc\">System Performance</div></a><a href=\"/d/windows\" class=\"nav-card\"><img src=\"/public/img/os-windows.svg\" class=\"card-icon\"/><div class=\"card-title\">Windows</div><div class=\"card-desc\">AD & IIS Status</div></a><a href=\"/d/aws\" class=\"nav-card\"><img src=\"/public/img/cloud-aws.svg\" class=\"card-icon\"/><div class=\"card-title\">AWS Cloud</div><div class=\"card-desc\">Cost & Infrastructure</div></a></div></div>",
+        "mode": "html"
+      },
+      "pluginVersion": "10.0.0",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["home", "neonxt"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {
+    "collapse": false,
+    "enable": true,
+    "notice": false,
+    "now": true
+  },
+  "timezone": "browser",
+  "title": "Home",
+  "uid": "neonxt-home",
+  "version": 1,
+  "weekStart": ""
+}

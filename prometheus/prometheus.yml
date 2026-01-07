@@ -8,7 +8,7 @@ global:
 
 # --- REMOTE WRITE ---
 remote_write:
-  - url: "http://10.192.10.127:10908/api/v1/receive"
+  - url: "http://receive:10908/api/v1/receive"
 
 # --- RULE CONFIGS ---
 rule_files:
@@ -95,13 +95,13 @@ scrape_configs:
     static_configs:
       - targets: ['prometheus:9090']
 
-  - job_name: 'aws-exporters' 
+  - job_name: 'aws-exporters'
     static_configs:
       - targets: ['yace:8099', 'aws-cost-exporter:9090']
 
   - job_name: 'monitoring-stack'
     static_configs:
-      - targets: 
+      - targets:
           - 'grafana:3000'
           - 'query:10902'
           - 'renderer:8081'

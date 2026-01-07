@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   frontend:
     driver: bridge
@@ -11,6 +9,8 @@ volumes:
   prometheus:
   grafana:
   alertmanager:
+  thanos_receive_data:
+  thanos_store_cache:
 
 configs:
   prometheus_config:
@@ -21,8 +21,6 @@ configs:
     file: ./grafana/grafana.ini
   alertmanager_config:
     file: ./alertmanager/alertmanager.yml
-  aws-cost-exporter:
-    file: ./aws-cost-exporter/config.yml
 
 secrets:
   thanos_objstore:
@@ -46,7 +44,7 @@ services:
     container_name: grafana
     user: "472:472"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     configs:
       - source: grafana_ini
         target: /etc/grafana/grafana.ini
@@ -74,11 +72,6 @@ services:
     <<: *default-security
     read_only: false
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     logging: *default-logging
 
   reporter:
@@ -87,13 +80,12 @@ services:
     networks:
       - backend
     volumes:
-      - ./reporter:/documents:ro
+      - ./reporter:/documents
     command: sh /documents/startup.sh
-    <<: *default-security
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v2.49.1
+    image: prom/prometheus:v3.8.1
     container_name: prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -103,7 +95,7 @@ services:
       # - '--web.external-url=https://neocompass.cloud/prometheus/'
     volumes:
       - prometheus:/prometheus
-      - prometheus/rules/:/etc/prometheus/
+      - ./prometheus/rules/:/etc/prometheus/
     configs:
       - source: prometheus_config
         target: /etc/prometheus/prometheus.yml
@@ -123,10 +115,10 @@ services:
     logging: *default-logging
 
   alertmanager:
-    image: prom/alertmanager:v0.27.0
+    image: prom/alertmanager:v0.30.0
     container_name: alertmanager
     volumes:
-      - alertmanager_data:/alertmanager
+      - alertmanager:/alertmanager
     configs:
       - source: alertmanager_config
         target: /etc/alertmanager/alertmanager.yml
@@ -177,13 +169,35 @@ services:
   store_gateway:
     image: quay.io/thanos/thanos:v0.34.1
     container_name: store_gateway
+    working_dir: /var/thanos/store
     command:
       - store
       - --grpc-address=0.0.0.0:10901
       - --http-address=0.0.0.0:10902
+      - --data-dir=/var/thanos/store
       - --objstore.config-file=/run/secrets/thanos_objstore
+    volumes:
+      - thanos_store_cache:/var/thanos/store
     secrets:
       - thanos_objstore
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+
+  query:
+    image: quay.io/thanos/thanos:v0.28.0
+    container_name: query
+    command:
+      - query
+      - --http-address=0.0.0.0:10902
+      - --store=sidecar:10901
+      - --store=store_gateway:10901
     networks:
       - backend
     <<: *default-security
@@ -195,17 +209,26 @@ services:
       retries: 3
     logging: *default-logging
 
-  query:
-    image: quay.io/thanos/thanos:v0.34.1
-    container_name: query
+  receive:
+    image: quay.io/thanos/thanos:v0.28.0 # Using same version as your other Thanos components
+    container_name: receive
     command:
-      - query
+      - receive
+      - --tsdb.path=/var/thanos/receive
+      - --grpc-address=0.0.0.0:10901
       - --http-address=0.0.0.0:10902
-      - --store=sidecar:10901
-      - --store=store_gateway:10901
+      - --remote-write.address=0.0.0.0:10908
+      - --tsdb.retention=2h
+      - --label=receive_cluster="neonxt"
+      - --objstore.config-file=/run/secrets/thanos_objstore
+    volumes:
+      - thanos_receive_data:/var/thanos/receive
+    secrets:
+      - thanos_objstore
     networks:
       - backend
     <<: *default-security
+    read_only: false # TSDB needs to write data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
@@ -237,18 +260,14 @@ services:
   aws-cost-exporter:
     image: opensourceelectrolux/aws-cost-exporter:v1.1.1
     container_name: aws-cost-exporter
-    secrets:
-      - aws_credentials
     environment:
-      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
+      AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID}
       AWS_REGION: ap-south-1
-    configs:
-      - source: aws-cost-exporter
-        target: /app/exporter_config.yml
-    command: [ "python", "main.py", "-c", "/exporter_config.yml" ]
+    volumes:
+      - ./aws-cost-exporter/exporter_config.yaml:/app/exporter_config.yaml:ro
+    command: [ "python", "main.py", "-c", "/exporter_config.yaml" ]
     networks:
       - backend
-    <<: *default-security
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9090/metrics"]
