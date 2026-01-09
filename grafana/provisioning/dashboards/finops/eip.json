@@ -1,0 +1,133 @@
+{
+  "type": "table",
+  "title": "AWS Idle EIPs",
+  "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 8
+  },
+  "datasource": {
+    "uid": "-- Mixed --",
+    "type": "datasource"
+  },
+  "id": 7,
+  "targets": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${thanos}"
+      },
+      "refId": "A",
+      "expr": "count by (region) (aws_idle_eip)",
+      "range": true,
+      "instant": false,
+      "editorMode": "code",
+      "legendFormat": "__auto",
+      "format": "table"
+    },
+    {
+      "format": 1,
+      "rawSQL": "SELECT\r\n  product_region AS region,\r\n  SUM(CAST(line_item_blended_cost AS double)) AS monthly_cost\r\nFROM \"athenacurcfn_finops\".\"finops\"\r\nWHERE\r\n  year = '2026'\r\n  AND product_product_name = 'Amazon Virtual Private Cloud'\r\n  AND line_item_usage_type LIKE '%PublicIPv4:IdleAddress%'\r\nGROUP BY product_region\r\nORDER BY monthly_cost DESC;\r\n",
+      "connectionArgs": {
+        "region": "__default",
+        "catalog": "__default",
+        "database": "__default",
+        "resultReuseEnabled": false,
+        "resultReuseMaxAgeInMinutes": 60
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "${athena}"
+      },
+      "refId": "B",
+      "hide": false
+    }
+  ],
+  "transparent": true,
+  "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "footer": {
+      "show": false,
+      "reducer": [
+        "sum"
+      ],
+      "countRows": false,
+      "fields": ""
+    },
+    "frameIndex": 1
+  },
+  "fieldConfig": {
+    "defaults": {
+      "custom": {
+        "align": "auto",
+        "cellOptions": {
+          "type": "auto"
+        },
+        "inspect": false
+      },
+      "mappings": [],
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          {
+            "value": null,
+            "color": "green"
+          },
+          {
+            "value": 80,
+            "color": "red"
+          }
+        ]
+      },
+      "color": {
+        "mode": "thresholds"
+      }
+    },
+    "overrides": [
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Monthly Cost ($)"
+        },
+        "properties": [
+          {
+            "id": "unit",
+            "value": "currencyUSD"
+          }
+        ]
+      }
+    ]
+  },
+  "pluginVersion": "11.0.0",
+  "transformations": [
+    {
+      "id": "labelsToFields",
+      "options": {}
+    },
+    {
+      "id": "joinByField",
+      "options": {
+        "byField": "region",
+        "mode": "inner"
+      }
+    },
+    {
+      "id": "organize",
+      "options": {
+        "excludeByName": {
+          "Time": true
+        },
+        "indexByName": {},
+        "renameByName": {
+          "region": "Region",
+          "Value": "EIP Count",
+          "monthly_cost B": "Monthly Cost ($)"
+        },
+        "includeByName": {}
+      }
+    }
+  ],
+  "description": "Idle Elastic IPs per region"
+}

@@ -1,0 +1,228 @@
+{
+  "datasource": {
+    "uid": "-- Mixed --",
+    "type": "datasource"
+  },
+  "fieldConfig": {
+    "defaults": {
+      "custom": {
+        "align": "auto",
+        "cellOptions": {
+          "type": "auto"
+        }
+      },
+      "color": {
+        "mode": "thresholds"
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "#EAB839",
+            "value": 20
+          },
+          {
+            "color": "red",
+            "value": 50
+          }
+        ]
+      }
+    },
+    "overrides": [
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Monthly Cost"
+        },
+        "properties": [
+          {
+            "id": "unit",
+            "value": "currencyUSD"
+          },
+          {
+            "id": "decimals",
+            "value": 2
+          },
+          {
+            "id": "custom.cellOptions",
+            "value": {
+              "type": "gauge",
+              "mode": "gradient",
+              "displayMode": "gradient-gauge"
+            }
+          },
+          {
+            "id": "custom.width",
+            "value": 180
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "NAT Gateway ID"
+        },
+        "properties": [
+          {
+            "id": "custom.align",
+            "value": "left"
+          },
+          {
+            "id": "links",
+            "value": [
+              {
+                "title": "Open in AWS Console",
+                "url": "https://${__data.fields.Region}.console.aws.amazon.com/vpc/home?region=${__data.fields.Region}#NatGatewayDetails:natGatewayId=${__value.raw}",
+                "targetBlank": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Region"
+        },
+        "properties": [
+          {
+            "id": "custom.align",
+            "value": "center"
+          },
+          {
+            "id": "custom.width",
+            "value": 110
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "VPC"
+        },
+        "properties": [
+          {
+            "id": "custom.align",
+            "value": "left"
+          },
+          {
+            "id": "custom.displayMode",
+            "value": "color-text"
+          }
+        ]
+      }
+    ]
+  },
+  "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 0
+  },
+  "id": 6,
+  "options": {
+    "showHeader": true,
+    "cellHeight": "md",
+    "sortBy": [
+      {
+        "displayName": "Monthly Cost",
+        "desc": true
+      }
+    ],
+    "footer": {
+      "show": true,
+      "reducer": [
+        "sum"
+      ],
+      "countRows": false,
+      "fields": [
+        "monthly_cost"
+      ]
+    }
+  },
+  "pluginVersion": "11.0.0",
+  "targets": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${thanos}"
+      },
+      "refId": "A",
+      "expr": "aws_idle_nat_gateway",
+      "editorMode": "code",
+      "instant": false,
+      "range": true,
+      "legendFormat": "__auto"
+    },
+    {
+      "format": 1,
+      "rawSQL": "SELECT\n  regexp_extract(\n    line_item_resource_id,\n    'natgateway/(nat-[a-z0-9]+)',\n    1\n  ) AS nat_id,\n  SUM(CAST(line_item_blended_cost AS double)) AS monthly_cost\nFROM \"athenacurcfn_finops\".\"finops\"\nWHERE\n  year = '2026'\n  AND product_product_name = 'Amazon Elastic Compute Cloud'\n  AND (\n        line_item_usage_type LIKE '%NatGateway-Hours%'\n        OR line_item_usage_type LIKE '%NatGateway-Bytes%'\n      )\nGROUP BY\n  regexp_extract(\n    line_item_resource_id,\n    'natgateway/(nat-[a-z0-9]+)',\n    1\n  )\nHAVING SUM(CAST(line_item_blended_cost AS double)) > 0\nORDER BY monthly_cost DESC;",
+      "connectionArgs": {
+        "region": "__default",
+        "catalog": "__default",
+        "database": "__default",
+        "resultReuseEnabled": false,
+        "resultReuseMaxAgeInMinutes": 60
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "${athena}"
+      },
+      "refId": "B",
+      "hide": false
+    }
+  ],
+  "title": "AWS Idle NAT Gateways",
+  "transformations": [
+    {
+      "id": "labelsToFields",
+      "options": {
+        "keepLabels": [
+          "region",
+          "subnet_id",
+          "vpc_id",
+          "nat_id"
+        ]
+      }
+    },
+    {
+      "id": "joinByField",
+      "options": {
+        "byField": "nat_id",
+        "mode": "inner"
+      }
+    },
+    {
+      "id": "organize",
+      "options": {
+        "excludeByName": {
+          "Time": true,
+          "aws_idle_nat_gateway": true
+        },
+        "indexByName": {
+          "nat_id": 0,
+          "region": 1,
+          "vpc_id": 2,
+          "subnet_id": 3,
+          "monthly_cost B": 4,
+          "Time": 5,
+          "aws_idle_nat_gateway": 6
+        },
+        "renameByName": {
+          "monthly_cost B": "Monthly Cost",
+          "nat_id": "NAT Gateway ID",
+          "region": "Region",
+          "vpc_id": "VPC",
+          "subnet_id": "Subnet"
+        },
+        "includeByName": {}
+      }
+    }
+  ],
+  "transparent": true,
+  "type": "table"
+}

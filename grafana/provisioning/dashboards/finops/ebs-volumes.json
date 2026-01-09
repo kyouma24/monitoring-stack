@@ -1,0 +1,256 @@
+{
+  "datasource": {
+    "type": "datasource",
+    "uid": "-- Mixed --"
+  },
+  "fieldConfig": {
+    "defaults": {
+      "custom": {
+        "align": "auto",
+        "cellOptions": {
+          "type": "auto"
+        },
+        "inspect": false
+      },
+      "mappings": [],
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "#EAB839",
+            "value": 20
+          },
+          {
+            "color": "red",
+            "value": 50
+          }
+        ]
+      },
+      "color": {
+        "mode": "thresholds"
+      }
+    },
+    "overrides": [
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Monthly Cost ($)"
+        },
+        "properties": [
+          {
+            "id": "unit",
+            "value": "currencyUSD"
+          },
+          {
+            "id": "decimals"
+          },
+          {
+            "id": "custom.cellOptions",
+            "value": {
+              "displayMode": "gradient-gauge",
+              "mode": "gradient",
+              "type": "gauge"
+            }
+          },
+          {
+            "id": "custom.width",
+            "value": 180
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Volume ID"
+        },
+        "properties": [
+          {
+            "id": "custom.align",
+            "value": "left"
+          },
+          {
+            "id": "links",
+            "value": [
+              {
+                "targetBlank": true,
+                "title": "View Volume in AWS",
+                "url": "https://${__data.fields.region}.console.aws.amazon.com/ec2/home?region=${__data.fields.region}#VolumeDetails:volumeId=${__value.raw}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Region"
+        },
+        "properties": [
+          {
+            "id": "custom.width",
+            "value": 110
+          },
+          {
+            "id": "custom.align",
+            "value": "center"
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Size(GB)"
+        },
+        "properties": [
+          {
+            "id": "custom.align",
+            "value": "center"
+          },
+          {
+            "id": "unit",
+            "value": "decbytes"
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "Availability Zone"
+        },
+        "properties": [
+          {
+            "id": "custom.align",
+            "value": "center"
+          }
+        ]
+      }
+    ]
+  },
+  "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 0
+  },
+  "id": 5,
+  "options": {
+    "showHeader": true,
+    "cellHeight": "md",
+    "footer": {
+      "show": true,
+      "reducer": [
+        "sum"
+      ],
+      "countRows": false,
+      "fields": [
+        "monthly_cost"
+      ]
+    },
+    "frameIndex": 0,
+    "sortBy": [
+      {
+        "desc": true,
+        "displayName": "Monthly Cost ($)"
+      }
+    ]
+  },
+  "pluginVersion": "11.0.0",
+  "targets": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${thanos}"
+      },
+      "editorMode": "code",
+      "expr": "aws_idle_ebs_volume == 1",
+      "instant": false,
+      "legendFormat": "__auto",
+      "range": true,
+      "refId": "A"
+    },
+    {
+      "connectionArgs": {
+        "catalog": "__default",
+        "database": "__default",
+        "region": "__default",
+        "resultReuseEnabled": false,
+        "resultReuseMaxAgeInMinutes": 60
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "${athena}"
+      },
+      "format": 1,
+      "hide": false,
+      "rawSQL": "SELECT\r\n  line_item_resource_id   AS volume_id,\r\n  SUM(line_item_blended_cost) AS monthly_cost\r\nFROM \"athenacurcfn_finops\".\"finops\"\r\nWHERE\r\n  year = '2026'\r\n  AND line_item_resource_id LIKE 'vol-%'\r\n  AND line_item_line_item_type = 'Usage'\r\nGROUP BY line_item_resource_id\r\nHAVING SUM(line_item_blended_cost) > 0\r\nORDER BY monthly_cost DESC;\r\n",
+      "refId": "B"
+    }
+  ],
+  "title": "AWS Idle EBS Volumes",
+  "transformations": [
+    {
+      "id": "labelsToFields",
+      "options": {
+        "keepLabels": [
+          "az",
+          "job",
+          "size_gb",
+          "volume_id",
+          "region"
+        ]
+      }
+    },
+    {
+      "id": "joinByField",
+      "options": {
+        "byField": "volume_id",
+        "mode": "inner"
+      }
+    },
+    {
+      "id": "organize",
+      "options": {
+        "excludeByName": {
+          "Time": true,
+          "__name__": true,
+          "aws_idle_ebs_volume": true,
+          "az 1": true,
+          "client 1": true,
+          "job": true,
+          "job 1": true,
+          "receive_cluster": true,
+          "receive_cluster 1": true,
+          "region 1": true,
+          "size_gb 1": true,
+          "tenant_id": true,
+          "tenant_id 1": true
+        },
+        "includeByName": {},
+        "indexByName": {
+          "Time": 5,
+          "aws_idle_ebs_volume": 6,
+          "az": 2,
+          "job": 7,
+          "monthly_cost B": 4,
+          "region": 1,
+          "size_gb": 3,
+          "volume_id": 0
+        },
+        "renameByName": {
+          "az": "Availability Zone",
+          "client": "Account",
+          "monthly_cost B": "Monthly Cost ($)",
+          "region": "Region",
+          "size_gb": "Size(GB)",
+          "volume_id": "Volume ID"
+        }
+      }
+    }
+  ],
+  "transparent": true,
+  "type": "table"
+}
