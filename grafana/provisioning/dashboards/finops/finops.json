@@ -1,0 +1,782 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 734,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "description": "Idle Elastic IPs aggregated by region",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Monthly Cost ($)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "displayMode": "gradient-gauge",
+                  "mode": "lcd",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EIP Count"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 301
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "green",
+                        "text": "✅ Clean"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Region"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "custom.width",
+                "value": 229
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "View EIPs in ${__value.raw}",
+                    "url": "https://${__value.raw}.console.aws.amazon.com/vpc/home?region=${__value.raw}#Addresses:"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "md",
+        "footer": {
+          "countRows": false,
+          "fields": [
+            "monthly_cost",
+            "Value"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "frameIndex": 1,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Monthly Cost ($)"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${thanos}"
+          },
+          "editorMode": "code",
+          "expr": "count by (region) (aws_idle_eip)",
+          "format": "table",
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "connectionArgs": {
+            "catalog": "__default",
+            "database": "__default",
+            "region": "__default",
+            "resultReuseEnabled": false,
+            "resultReuseMaxAgeInMinutes": 60
+          },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "${athena}"
+          },
+          "format": 1,
+          "hide": false,
+          "rawSQL": "SELECT\r\n  product_region AS region,\r\n  SUM(CAST(line_item_blended_cost AS double)) AS monthly_cost\r\nFROM \"athenacurcfn_finops\".\"finops\"\r\nWHERE\r\n  year = '2026'\r\n  AND product_product_name = 'Amazon Virtual Private Cloud'\r\n  AND line_item_usage_type LIKE '%PublicIPv4:IdleAddress%'\r\nGROUP BY product_region\r\nORDER BY monthly_cost DESC;\r\n",
+          "refId": "B"
+        }
+      ],
+      "title": "AWS Idle EIPs",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "region",
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 3,
+              "Value": 1,
+              "monthly_cost B": 2,
+              "region": 0
+            },
+            "renameByName": {
+              "Value": "EIP Count",
+              "monthly_cost B": "Monthly Cost ($)",
+              "region": "Region"
+            }
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Monthly Cost ($)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "displayMode": "gradient-gauge",
+                  "mode": "lcd",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Volume ID"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "View Volume in AWS",
+                    "url": "https://${__data.fields.region}.console.aws.amazon.com/ec2/home?region=${__data.fields.region}#VolumeDetails:volumeId=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Region"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Size(GB)"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "unit",
+                "value": "decgbytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Availability Zone"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "cellHeight": "md",
+        "footer": {
+          "countRows": false,
+          "fields": [
+            "monthly_cost"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Monthly Cost ($)"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${thanos}"
+          },
+          "editorMode": "code",
+          "expr": "aws_idle_ebs_volume == 1",
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "connectionArgs": {
+            "catalog": "__default",
+            "database": "__default",
+            "region": "__default",
+            "resultReuseEnabled": false,
+            "resultReuseMaxAgeInMinutes": 60
+          },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "${athena}"
+          },
+          "format": 1,
+          "hide": false,
+          "rawSQL": "SELECT\r\n  line_item_resource_id   AS volume_id,\r\n  SUM(line_item_blended_cost) AS monthly_cost\r\nFROM \"athenacurcfn_finops\".\"finops\"\r\nWHERE\r\n  year = '2026'\r\n  AND line_item_resource_id LIKE 'vol-%'\r\n  AND line_item_line_item_type = 'Usage'\r\nGROUP BY line_item_resource_id\r\nHAVING SUM(line_item_blended_cost) > 0\r\nORDER BY monthly_cost DESC;\r\n",
+          "refId": "B"
+        }
+      ],
+      "title": "AWS Idle EBS Volumes",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "az",
+              "job",
+              "size_gb",
+              "volume_id",
+              "region"
+            ]
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "volume_id",
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "aws_idle_ebs_volume": true,
+              "az 1": true,
+              "client 1": true,
+              "job": true,
+              "job 1": true,
+              "receive_cluster": true,
+              "receive_cluster 1": true,
+              "region 1": true,
+              "size_gb 1": true,
+              "tenant_id": true,
+              "tenant_id 1": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 5,
+              "aws_idle_ebs_volume": 6,
+              "az": 2,
+              "job": 7,
+              "monthly_cost B": 4,
+              "region": 1,
+              "size_gb": 3,
+              "volume_id": 0
+            },
+            "renameByName": {
+              "az": "Availability Zone",
+              "client": "Account",
+              "monthly_cost B": "Monthly Cost ($)",
+              "region": "Region",
+              "size_gb": "Size(GB)",
+              "volume_id": "Volume ID"
+            }
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Monthly Cost ($)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "displayMode": "gradient-gauge",
+                  "mode": "lcd",
+                  "type": "gauge",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NAT Gateway ID"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Open in AWS Console",
+                    "url": "https://${__data.fields.Region}.console.aws.amazon.com/vpc/home?region=${__data.fields.Region}#NatGatewayDetails:natGatewayId=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Region"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VPC"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "md",
+        "footer": {
+          "countRows": false,
+          "fields": [
+            "monthly_cost"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Monthly Cost"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${thanos}"
+          },
+          "editorMode": "code",
+          "expr": "aws_idle_nat_gateway",
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "connectionArgs": {
+            "catalog": "__default",
+            "database": "__default",
+            "region": "__default",
+            "resultReuseEnabled": false,
+            "resultReuseMaxAgeInMinutes": 60
+          },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "${athena}"
+          },
+          "format": 1,
+          "hide": false,
+          "rawSQL": "SELECT\n  regexp_extract(\n    line_item_resource_id,\n    'natgateway/(nat-[a-z0-9]+)',\n    1\n  ) AS nat_id,\n  SUM(CAST(line_item_blended_cost AS double)) AS monthly_cost\nFROM \"athenacurcfn_finops\".\"finops\"\nWHERE\n  year = '2026'\n  AND product_product_name = 'Amazon Elastic Compute Cloud'\n  AND (\n        line_item_usage_type LIKE '%NatGateway-Hours%'\n        OR line_item_usage_type LIKE '%NatGateway-Bytes%'\n      )\nGROUP BY\n  regexp_extract(\n    line_item_resource_id,\n    'natgateway/(nat-[a-z0-9]+)',\n    1\n  )\nHAVING SUM(CAST(line_item_blended_cost AS double)) > 0\nORDER BY monthly_cost DESC;",
+          "refId": "B"
+        }
+      ],
+      "title": "AWS Idle NAT Gateways",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "region",
+              "subnet_id",
+              "vpc_id",
+              "nat_id"
+            ]
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "nat_id",
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "aws_idle_nat_gateway": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 5,
+              "aws_idle_nat_gateway": 6,
+              "monthly_cost B": 4,
+              "nat_id": 0,
+              "region": 1,
+              "subnet_id": 3,
+              "vpc_id": 2
+            },
+            "renameByName": {
+              "monthly_cost B": "Monthly Cost ($)",
+              "nat_id": "NAT Gateway ID",
+              "region": "Region",
+              "subnet_id": "Subnet",
+              "vpc_id": "VPC"
+            }
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "thanos",
+          "value": "edn8z286lov0gb"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "thanos",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "thanos",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "finops",
+          "value": "ff9go6b98olq8e"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "athena",
+        "options": [],
+        "query": "grafana-athena-datasource",
+        "refresh": 1,
+        "regex": "finops",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timeRangeUpdatedDuringEditOrView": false,
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "FinOps Idle Resources",
+  "uid": "finops-idle",
+  "version": 1,
+  "weekStart": ""
+}
