@@ -26,6 +26,17 @@ groups:
           VALUE: '{{ $value }}'
           LABELS: '{{ $labels }}'
 
+      - alert: HostDiskMayFillIn24Hours
+        expr: predict_linear(node_filesystem_avail_bytes{fstype!~"^(fuse.*|tmpfs|cifs|nfs)"}[3h], 86400) <= 0 and node_filesystem_avail_bytes > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host disk may fill in 24 hours (instance {{ $labels.instance_name }})
+          description: "Filesystem will likely run out of space within the next 24 hours.\n  VALUE = {{ $value }}\n"
+          VALUE: '{{ $value }}'
+          LABELS: '{{ $labels }}'
+
 
 ## Server Status
   - name: server_alerts
@@ -125,6 +136,54 @@ groups:
           VALUE: "{{ $value }}"
           LABELS: "{{ $labels }}"
 
+  - name: recommendation
+    rules:
+      - alert: HostCpuIsUnderutilized
+        expr: 100 - (min without (cpu) (rate(node_cpu_seconds_total{mode="idle"}[1h])) * 100) > 80
+        for: 2w
+        labels:
+          severity: info
+          category: under_utilized
+        annotations:
+          summary: Host CPU is underutilized (instance {{ $labels.instance_name }})
+          description: "CPU load has been < 20% for 2 weeks. Consider reducing the number of CPUs.\n  VALUE = {{ $value }}\n"
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: HostMemoryIsUnderutilized
+        expr: min_over_time(node_memory_MemFree_bytes[2w]) > node_memory_MemTotal_bytes * .8
+        for: 0m
+        labels:
+          severity: info
+          category: under_utilized
+        annotations:
+          summary: Host Memory is underutilized (instance {{ $labels.instance_name }})
+          description: "Node memory usage is < 20% for 2 weeks. Consider reducing memory space. (instance {{ $labels.instance_name }})"
+
+#### WINDOWS #####
+      - alert: WindowsServerCpuUsage
+        expr: 100 - (avg by (instance) (rate(windows_cpu_time_total{mode="idle"}[1h])) * 100) > 80
+        for: 2w
+        labels:
+          severity: info
+          category: under_utilized
+        annotations:
+          summary: Windows Server CPU is underutilized (instance {{ $labels.instance_name }})
+          description: "CPU load has been < 20% for 2 weeks. Consider reducing the number of CPUs.\n  VALUE = {{ $value }}\n"
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
+
+      - alert: WindowsServerMemoryUsage
+        expr: min_over_time(windows_os_physical_memory_free_bytes[2w]) > windows_cs_physical_memory_bytes * .8
+        for: 2w
+        labels:
+          severity: warning
+          category: under_utilized
+        annotations:
+          summary: Windows Server is underutilized (instance {{ $labels.instance_name }})
+          description: "Node memory usage is < 20% for 2 weeks. Consider reducing memory space. (instance {{ $labels.instance_name }})\n  VALUE = {{ $value }}\n"
+          VALUE: "{{ $value }}"
+          LABELS: "{{ $labels }}"
 
 ################################## Windows Alerts ##############################################################
 ## DiskUsage Alert

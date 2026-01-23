@@ -8,8 +8,17 @@ route:
   - receiver: 'centralized'
     group_wait: 10s
     continue: true
+
   - receiver: 'alerta'
     group_wait: 10s
+
+  - receiver: 'centralized'
+    matchers:
+    - category="under_utilized"
+    repeat_interval: 168h
+    group_wait: 10s
+    group_interval: 30m
+    continue: true
 
 inhibit_rules:
   - source_matchers:
