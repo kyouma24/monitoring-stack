@@ -1,0 +1,259 @@
+groups:
+- name: linux_capacity_rules
+  interval: 1m
+  rules:
+
+  # ============================================================
+  # CPU
+  # ============================================================
+
+  # Worst-core CPU idle percentage (capacity-safe)
+  - record: linux:cpu_idle:worst_core:percent
+    expr: |
+      min without (cpu, mode) (
+        rate(node_cpu_seconds_total{mode="idle"}[5m])
+      ) * 100
+
+  # Average CPU usage percentage
+  - record: linux:cpu_usage:avg:percent
+    expr: |
+      (
+        1 -
+        avg without (cpu, mode) (
+          rate(node_cpu_seconds_total{mode="idle"}[5m])
+        )
+      ) * 100
+
+  # CPU steal percentage (virtualization pressure)
+  - record: linux:cpu_steal:percent
+    expr: |
+      avg without (cpu, mode) (
+        rate(node_cpu_seconds_total{mode="steal"}[5m])
+      ) * 100
+
+  # ============================================================
+  # Load (normalized by CPU cores)
+  # ============================================================
+
+  # Number of CPU cores per host
+  - record: linux:cpu_cores
+    expr: |
+      count without (cpu, mode) (
+        node_cpu_seconds_total
+      )
+
+  - record: linux:load:normalized:1m
+    expr: |
+      node_load1 / on(instance) group_left linux:cpu_cores
+
+  - record: linux:load:normalized:5m
+    expr: |
+      node_load5 / on(instance) group_left linux:cpu_cores
+
+  - record: linux:load:normalized:15m
+    expr: |
+      node_load15 / on(instance) group_left linux:cpu_cores
+
+  # ============================================================
+  # Memory
+  # ============================================================
+
+  # Memory usage percentage (MemAvailable-based, kernel-aware)
+  - record: linux:memory_used:percent
+    expr: |
+      (
+        1 -
+        (
+          node_memory_MemAvailable_bytes
+          /
+          node_memory_MemTotal_bytes
+        )
+      ) * 100
+
+  # Memory used in bytes
+  - record: linux:memory_used:bytes
+    expr: |
+      node_memory_MemTotal_bytes
+      -
+      node_memory_MemAvailable_bytes
+
+  # Memory available in bytes
+  - record: linux:memory_available:bytes
+    expr: |
+      node_memory_MemAvailable_bytes
+
+  # Swap usage percentage (pressure indicator)
+  - record: linux:swap_used:percent
+    expr: |
+      (
+        1 -
+        (
+          node_memory_SwapFree_bytes
+          /
+          clamp_min(node_memory_SwapTotal_bytes, 1)
+        )
+      ) * 100
+
+  # ============================================================
+  # Disk
+  # ============================================================
+
+  # Worst mountpoint usage in percentage
+  - record: linux:disk_usage:worst_mountpoint:percent
+    expr: |
+      max by (instance) (
+        (
+          1 -
+          (
+            node_filesystem_avail_bytes{
+              fstype!~"tmpfs|overlay|squashfs|proc|sysfs|cgroup",
+              mountpoint!~"/boot($|/.*)|/var/lib/(docker|containerd)(/.*|$)"
+            }
+            /
+            node_filesystem_size_bytes{
+              fstype!~"tmpfs|overlay|squashfs|proc|sysfs|cgroup",
+              mountpoint!~"/boot($|/.*)|/var/lib/(docker|containerd)(/.*|$)"
+            }
+          )
+        ) * 100
+      )
+
+  # Worst mountpoint usage in bytes
+  - record: linux:disk_usage:worst_mountpoint:bytes
+    expr: |
+      max by (instance) (
+        node_filesystem_size_bytes{
+          fstype!~"tmpfs|overlay|squashfs|proc|sysfs|cgroup",
+          mountpoint!~"/boot($|/.*)|/var/lib/(docker|containerd)(/.*|$)"
+        }
+        -
+        node_filesystem_avail_bytes{
+          fstype!~"tmpfs|overlay|squashfs|proc|sysfs|cgroup",
+          mountpoint!~"/boot($|/.*)|/var/lib/(docker|containerd)(/.*|$)"
+        }
+      )
+
+  # Disk read IOPS
+  - record: linux:disk_iops:read
+    expr: |
+      sum without (device) (
+        rate(node_disk_reads_completed_total{device!~"loop.*|ram.*|fd.*"}[5m])
+      )
+
+  # Disk write IOPS
+  - record: linux:disk_iops:write
+    expr: |
+      sum without (device) (
+        rate(node_disk_writes_completed_total{device!~"loop.*|ram.*|fd.*"}[5m])
+      )
+
+  - record: linux:disk_io:saturation
+    expr: |
+      max by (instance) (
+        avg_over_time(node_disk_io_time_seconds_total[5m])
+      )
+
+  - record: linux:disk_io_latency:ms
+    expr: |
+      (
+        sum without (device) (
+          rate(node_disk_read_time_seconds_total[5m])
+          +
+          rate(node_disk_write_time_seconds_total[5m])
+        )
+        /
+        clamp_min(
+          sum without (device) (
+            rate(node_disk_reads_completed_total[5m])
+            +
+            rate(node_disk_writes_completed_total[5m])
+          ),
+          1
+        )
+      ) * 1000
+
+  # ============================================================
+  # Network
+  # ============================================================
+
+  - record: linux:network_receive:bytes_per_sec
+    expr: |
+      sum without (device) (
+        rate(node_network_receive_bytes_total{
+          device!~"lo|docker.*|veth.*|cni.*"
+        }[5m])
+      )
+
+  - record: linux:network_transmit:bytes_per_sec
+    expr: |
+      sum without (device) (
+        rate(node_network_transmit_bytes_total{
+          device!~"lo|docker.*|veth.*|cni.*"
+        }[5m])
+      )
+
+  - record: linux:network_errors:rate
+    expr: |
+      sum without (device) (
+        rate(node_network_receive_errs_total[5m])
+        +
+        rate(node_network_transmit_errs_total[5m])
+      )
+
+  - record: linux:network_drops:rate
+    expr: |
+      sum without (device) (
+        rate(node_network_receive_drop_total[5m])
+        +
+        rate(node_network_transmit_drop_total[5m])
+      )
+
+  # ============================================================
+  # Capacity Signals (Boolean)
+  # ============================================================
+- name: provision_rules
+  rules:
+  - record: linux:overprovisioned:bool
+    expr: |
+      (linux:cpu_idle:worst_core:percent > bool 80)
+      and
+      (linux:memory_used:percent < bool 40)
+
+  - record: linux:underprovisioned:bool
+    expr: |
+      (linux:cpu_usage:avg:percent > bool 80)
+      or (linux:memory_used:percent > bool 85)
+      or (linux:load:normalized:5m > bool 1)
+
+- name: health_rules
+  rules:
+  - record: linux:cpu_pressure:score
+    expr: |
+      clamp(
+        ((linux:cpu_usage:avg:percent / 100) ^ 1.3) ^ (1/3),
+        0, 1
+      )
+
+  - record: linux:memory_pressure:score
+    expr: |
+      clamp(
+        (1 - (1 - (linux:memory_used:percent / 100)) ^ 6) ^ (1/3),
+        0, 1
+      )
+
+  - record: linux:disk_io_pressure:score
+    expr: |
+      clamp(
+        (1 - clamp(linux:disk_io:saturation, 0, 1) ^ 1.1) ^ 0.5,
+        0, 1
+      )
+
+  - record: linux:instance_health:score
+    expr: |
+      (
+        linux:cpu_pressure:score * 0.5
+        +
+        linux:memory_pressure:score * 0.3
+        +
+        linux:disk_io_pressure:score * 0.2
+      ) * 100

@@ -1,0 +1,190 @@
+groups:
+  - name: linux_capacity_alerts
+    rules:
+      - alert: LinuxCPUUsageHigh
+        expr: linux:cpu_usage:avg:percent > 80 and linux:cpu_usage:avg:percent <= 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} has high average CPU usage.
+            Current value: {{ printf "%.2f" $value }}%
+            Threshold: 80%
+
+      - alert: LinuxCPUUsageCritical
+        expr: linux:cpu_usage:avg:percent > 90
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} CPU usage is critically high.
+            Current value: {{ printf "%.2f" $value }}%
+            Threshold: 90%
+
+      - alert: LinuxHighCPUSteal
+        expr: linux:cpu_steal:percent > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU steal on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is experiencing CPU steal.
+            Current value: {{ printf "%.2f" $value }}%
+            Threshold: 10%
+
+      - alert: LinuxLoadHigh
+        expr: linux:load:normalized:5m > 1 and linux:load:normalized:5m <= 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High normalized load on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is experiencing sustained load.
+            Normalized load: {{ printf "%.2f" $value }}
+            Threshold: 1.00
+
+      - alert: LinuxLoadCritical
+        expr: linux:load:normalized:5m > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical load on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is under severe load.
+            Normalized load: {{ printf "%.2f" $value }}
+            Threshold: 2.00
+
+      - alert: LinuxMemoryUsageHigh
+        expr: linux:memory_used:percent > 85 and linux:memory_used:percent <= 95
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is using too much memory.
+            Current usage: {{ printf "%.2f" $value }}%
+            Threshold: 85%
+
+      - alert: LinuxMemoryUsageCritical
+        expr: linux:memory_used:percent > 95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} memory usage is critically high.
+            Current value: {{ printf "%.2f" $value }}%
+            Threshold: 95%
+
+      - alert: LinuxDiskUsageHigh
+        expr: linux:disk_usage:worst_mountpoint:percent > 85 and linux:disk_usage:worst_mountpoint:percent <= 95
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space running low on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} has a filesystem nearing capacity.
+            Worst mountpoint usage: {{ printf "%.2f" $value }}%
+            Threshold: 85%
+
+      - alert: LinuxDiskUsageCritical
+        expr: linux:disk_usage:worst_mountpoint:percent > 95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space critically low on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is critically low on disk space.
+            Worst mountpoint usage: {{ printf "%.2f" $value }}%
+            Threshold: 95%
+
+      - alert: LinuxDiskIOSaturated
+        expr: linux:disk_io:saturation > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk IO saturation on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} has sustained disk IO saturation.
+            Disk busy ratio: {{ printf "%.2f" $value }}
+            Threshold: 0.80
+
+      - alert: LinuxDiskLatencyHigh
+        expr: linux:disk_io_latency:ms > 50 and linux:disk_io_latency:ms <= 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk latency on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is experiencing high disk latency.
+            Current latency: {{ printf "%.2f" $value }} ms
+            Threshold: 50 ms
+
+      - alert: LinuxDiskLatencyCritical
+        expr: linux:disk_io_latency:ms > 100
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk latency on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is experiencing critical disk latency since.
+            Current latency: {{ printf "%.2f" $value }} ms
+            Threshold: 100 ms
+
+      - alert: LinuxNetworkErrors
+        expr: linux:network_errors:rate > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Network errors on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is experiencing network errors.
+            Error rate: {{ printf "%.2f" $value }} errors/sec
+
+      - alert: LinuxNetworkDrops
+        expr: linux:network_drops:rate > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Network packet drops on {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is dropping packets.
+            Drop rate: {{ printf "%.2f" $value }} drops/sec
+
+      - alert: LinuxHostUnderutilized
+        expr: linux:overprovisioned:bool
+        for: 7d
+        labels:
+          severity: info
+        annotations:
+          summary: "Host underutilized: {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} has been underutilized for 7 days.
+            Consider rightsizing to reduce costs.
+
+      - alert: LinuxHostUnderProvisioned
+        expr: linux:underprovisioned:bool
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host under provisioned: {{ $labels.instance_name }}"
+          description: >
+            Instance {{ $labels.instance_name }} is under provisioned based on capacity signals.
+            CPU / memory / disk / load thresholds exceeded. 

@@ -92,7 +92,8 @@ services:
       - '--storage.tsdb.retention.time=24h'
       - '--storage.tsdb.max-block-duration=2h'
       - '--storage.tsdb.min-block-duration=2h'
-      # - '--web.external-url=https://neocompass.cloud/prometheus/'
+      - '--enable-feature=memory-snapshot-on-shutdown'
+      # - '--web.route-prefix=/prometheus'
     volumes:
       - prometheus:/prometheus
       - ./prometheus/rules/:/etc/prometheus/
@@ -125,6 +126,10 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
+      - '--web.route-prefix=/alert'
+      - '--web.external-url=http://neocompass.cloud'
+      - '--cluster.listen-address='
+      - '--data.retention=360h'
     networks:
       - frontend
       - backend

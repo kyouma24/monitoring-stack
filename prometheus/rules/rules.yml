@@ -139,7 +139,7 @@ groups:
   - name: recommendation
     rules:
       - alert: HostCpuIsUnderutilized
-        expr: 100 - (min without (cpu) (rate(node_cpu_seconds_total{mode="idle"}[1h])) * 100) > 80
+        expr: min without (cpu) (rate(node_cpu_seconds_total{mode="idle"}[1h])) * 100 > 80
         for: 2w
         labels:
           severity: info

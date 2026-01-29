@@ -1,0 +1,70 @@
+global:
+  resolve_timeout: 5m
+
+  smtp_smarthost: 'email-smtp.ap-south-1.amazonaws.com:587'
+  smtp_from: 'raghavendra@neonxt.com'
+  smtp_auth_username: 'AKIAT6OL2US2TYZU7573'
+  smtp_auth_password: 'BHjihi/ZX0AUfBkqpwS/j+YyGKXFcOpNcFo+dhYHrS7n'
+  smtp_require_tls: true
+
+route:
+  receiver: default-email
+  group_by: ['alertname', 'instance', 'severity']
+  group_wait: 30s
+  group_interval: 10m
+  repeat_interval: 12h
+
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: critical-email
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 4h
+
+    - matchers:
+        - severity="warning"
+      receiver: warning-email
+      group_wait: 30s
+      group_interval: 15m
+      repeat_interval: 24h
+
+    - matchers:
+        - severity="info"
+      receiver: info-email
+      group_wait: 5m
+      group_interval: 1h
+      repeat_interval: 168h
+
+    # Fallback for unexpected alerts
+    - matchers:
+        - severity!~"critical|warning|info"
+      receiver: default-email
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ['alertname', 'instance']
+
+receivers:
+  - name: default-email
+    email_configs:
+      - to: "raghavendra.merugu@neonxt.com"
+        send_resolved: true
+
+  - name: critical-email
+    email_configs:
+      - to: "raghavendra.merugu@neonxt.com"
+        send_resolved: true
+
+  - name: warning-email
+    email_configs:
+      - to: "raghavendra.merugu@neonxt.com"
+        send_resolved: true
+
+  - name: info-email
+    email_configs:
+      - to: "raghavendra.merugu@neonxt.com"
+        send_resolved: true
