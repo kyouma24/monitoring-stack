@@ -1,7 +1,11 @@
 global:
   resolve_timeout: 5m
 
-
+  smtp_smarthost: 'email-smtp.ap-south-1.amazonaws.com:587'
+  smtp_from: 'verified-ses-identity'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+  smtp_require_tls: true
 
 route:
   receiver: default-email
