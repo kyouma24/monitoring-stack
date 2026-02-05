@@ -38,8 +38,8 @@ groups:
   # Number of CPU cores per host
   - record: linux:cpu_cores
     expr: |
-      count without (cpu, mode) (
-        node_cpu_seconds_total
+      count without (cpu) (
+        node_cpu_seconds_total{mode="idle"}
       )
 
   - record: linux:load:normalized:1m
@@ -149,8 +149,8 @@ groups:
 
   - record: linux:disk_io:saturation
     expr: |
-      max by (instance) (
-        avg_over_time(node_disk_io_time_seconds_total[5m])
+      max without (device) (
+        rate(node_disk_io_time_seconds_total[5m])
       )
 
   - record: linux:disk_io_latency:ms
@@ -211,8 +211,7 @@ groups:
   # ============================================================
   # Capacity Signals (Boolean)
   # ============================================================
-- name: provision_rules
-  rules:
+
   - record: linux:overprovisioned:bool
     expr: |
       (linux:cpu_idle:worst_core:percent > bool 80)

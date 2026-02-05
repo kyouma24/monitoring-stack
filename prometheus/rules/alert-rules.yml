@@ -167,7 +167,7 @@ groups:
             Instance {{ $labels.instance_name }} is dropping packets.
             Drop rate: {{ printf "%.2f" $value }} drops/sec
 
-      - alert: LinuxHostUnderutilized
+      - alert: LinuxHostOverProvisioned
         expr: linux:overprovisioned:bool
         for: 7d
         labels:
@@ -188,3 +188,5 @@ groups:
           description: >
             Instance {{ $labels.instance_name }} is under provisioned based on capacity signals.
             CPU / memory / disk / load thresholds exceeded. 
+
+

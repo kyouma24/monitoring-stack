@@ -9,8 +9,6 @@ volumes:
   prometheus:
   grafana:
   alertmanager:
-  thanos_receive_data:
-  thanos_store_cache:
 
 configs:
   prometheus_config:
@@ -25,6 +23,8 @@ configs:
 secrets:
   thanos_objstore:
     file: ./secrets/bucket_config.yml
+  aws_credentials:
+    file: ./secrets/aws_credentials
 
 x-logging: &default-logging
   driver: json-file
@@ -92,8 +92,6 @@ services:
       - '--storage.tsdb.retention.time=24h'
       - '--storage.tsdb.max-block-duration=2h'
       - '--storage.tsdb.min-block-duration=2h'
-      - '--enable-feature=memory-snapshot-on-shutdown'
-      # - '--web.route-prefix=/prometheus'
     volumes:
       - prometheus:/prometheus
       - ./prometheus/rules/:/etc/prometheus/
@@ -106,7 +104,7 @@ services:
     <<: *default-security
     read_only: false
     ports:
-      - "127.0.0.1:9090:9090"
+      - "9090:9090"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
@@ -126,10 +124,6 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
-      - '--web.route-prefix=/alert'
-      - '--web.external-url=http://neocompass.cloud'
-      - '--cluster.listen-address='
-      - '--data.retention=360h'
     networks:
       - frontend
       - backend
@@ -140,32 +134,6 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    logging: *default-logging
-
-  sidecar:
-    image: quay.io/thanos/thanos:v0.34.1
-    container_name: sidecar
-    command:
-      - sidecar
-      - --grpc-address=0.0.0.0:10901
-      - --prometheus.url=http://prometheus:9090
-      - --objstore.config-file=/run/secrets/thanos_objstore
-    volumes:
-      - prometheus:/prometheus
-    secrets:
-      - thanos_objstore
-    networks:
-      - backend
-    <<: *default-security
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -182,7 +150,12 @@ services:
       - --data-dir=/var/thanos/store
       - --objstore.config-file=/run/secrets/thanos_objstore
     volumes:
-      - thanos_store_cache:/var/thanos/store
+      - ./thanos/store:/var/thanos/store:z
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
     secrets:
       - thanos_objstore
     networks:
@@ -196,47 +169,49 @@ services:
     logging: *default-logging
 
   query:
-    image: quay.io/thanos/thanos:v0.28.0
+    image: quay.io/thanos/thanos:v0.34.1
     container_name: query
     command:
       - query
-      - --http-address=0.0.0.0:10902
-      - --store=sidecar:10901
+      - --http-address=0.0.0.0:10903
       - --store=store_gateway:10901
+      - --store=receive:10901
+    ports:
+      - 10903:10903
     networks:
       - backend
     <<: *default-security
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:10903/-/healthy"]
       interval: 30s
       timeout: 5s
       retries: 3
     logging: *default-logging
 
   receive:
-    image: quay.io/thanos/thanos:v0.28.0 # Using same version as your other Thanos components
+    image: quay.io/thanos/thanos:v0.34.1 
     container_name: receive
     command:
       - receive
       - --tsdb.path=/var/thanos/receive
       - --grpc-address=0.0.0.0:10901
-      - --http-address=0.0.0.0:10902
+      - --http-address=0.0.0.0:10904
       - --remote-write.address=0.0.0.0:10908
-      - --tsdb.retention=2h
+      - --tsdb.retention=6h
       - --label=receive_cluster="neonxt"
       - --objstore.config-file=/run/secrets/thanos_objstore
     volumes:
-      - thanos_receive_data:/var/thanos/receive
+      - ./thanos/receive:/var/thanos/receive
     secrets:
       - thanos_objstore
     networks:
       - backend
     <<: *default-security
-    read_only: false # TSDB needs to write data
+    read_only: false 
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:10902/-/healthy"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:10904/-/healthy"]
       interval: 30s
       timeout: 5s
       retries: 3

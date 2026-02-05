@@ -18,6 +18,7 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets: ["alertmanager:9093"]
+        - path_prefix: /alert
 
 scrape_configs:
 # --- INFRASTRUCTURE (EC2 SD) ---
