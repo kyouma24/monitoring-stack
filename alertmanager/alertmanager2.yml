@@ -1,11 +1,7 @@
 global:
   resolve_timeout: 5m
 
-  smtp_smarthost: 'email-smtp.ap-south-1.amazonaws.com:587'
-  smtp_from: 'raghavendra.merugu@neonxt.com'
-  smtp_auth_username: 'AKIAT6OL2US2TYZU7573'
-  smtp_auth_password: 'BHjihi/ZX0AUfBkqpwS/j+YyGKXFcOpNcFo+dhYHrS7n'
-  smtp_require_tls: true
+
 
 route:
   receiver: default-email
